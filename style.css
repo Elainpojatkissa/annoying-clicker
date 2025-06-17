@@ -1,0 +1,118 @@
+body {
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    margin: 0;
+    overflow: hidden; /* For moving elements */
+}
+
+.game-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: #333;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 1.2em;
+    margin: 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+#click-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#click-button:hover {
+    background-color: #45a049;
+}
+
+#upgrade-button {
+    background-color: #008CBA;
+    color: white;
+}
+
+#upgrade-button:hover {
+    background-color: #007bb5;
+}
+
+.popup {
+    position: fixed;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #333;
+    padding: 20px;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    /* For random positioning */
+    top: 50px; 
+    right: 50px;
+}
+
+.captcha-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.captcha-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.progress-bar-container {
+    width: 300px;
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #2196F3;
+    transition: width 0.5s ease-out; /* For smoother "fake" progress */
+}
+
+/* For visual glitches */
+.glitch-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: red; /* Or any jarring color */
+    z-index: 9999;
+    opacity: 0;
+    animation: flash 0.05s forwards; /* Short, sharp flash */
+}
+
+@keyframes flash {
+    0% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
