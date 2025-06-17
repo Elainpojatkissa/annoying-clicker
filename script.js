@@ -7,12 +7,25 @@ let annoyanceLevel = 0; // NEW: Initialize annoyance level
 const gameGoal = 100000.0; // The BIG goal for YouTubers!
 
 // DOM Elements
+const body = document.body;
 const scoreDisplay = document.getElementById('score-display');
 const clickButton = document.getElementById('click-button');
 const upgradeButton = document.getElementById('upgrade-button');
 const popupArea = document.getElementById('popup-area');
 const fakeProgressBar = document.getElementById('fake-progress-bar');
 const goalDisplay = document.getElementById('goal-display'); // Get the new goal display element
+
+// Audio elements
+const errorSound = document.getElementById('error-sound');
+const buzzSound = document.getElementById('buzz-sound');
+const discordPingSound = document.getElementById('discord-ping-sound');
+const allSounds = [errorSound, buzzSound, discordPingSound].filter(s => s); // Filter out null if not found
+
+// Store original styles for reversion
+const originalScoreDisplayFont = scoreDisplay.style.fontFamily;
+const originalGoalDisplayFont = goalDisplay.style.fontFamily;
+const originalScoreDisplayColor = scoreDisplay.style.color;
+const originalGoalDisplayColor = goalDisplay.style.color;
 
 // --- Core Game Functions ---
 
@@ -30,17 +43,18 @@ function checkAnnoyanceLevel() {
             upgradeButton.disabled = true;
             goalDisplay.textContent = "GAME OVER! YOU WON! (Finally...)";
             goalDisplay.style.color = 'gold'; // Make it stand out!
-            // Optional: Add a final, ultimate annoyance or celebration
+            // Stop all annoyance loops or set probabilities to 0
+            // You might want to stop specific annoying intervals here
         }
         return; // Game won, stop escalating annoyance
     }
 
     let newLevel = 0;
-    if (score >= 1000) newLevel = 1; // Mild: More popups, button occasionally moves.
-    if (score >= 5000) newLevel = 2; // Medium: Upgrade downsides, flickering UI, typo popups.
-    if (score >= 15000) newLevel = 3; // High: CAPTCHAs, visual glitches, lag.
-    if (score >= 50000) newLevel = 4; // Extreme: Fake crashes, even higher frequencies/durations.
-    if (score >= 90000) newLevel = 5; // MAXIMUM OVERDRIVE: All annoyances at peak!
+    if (score >= 500) newLevel = 1; // Mild: More popups, button occasionally moves, minor audio.
+    if (score >= 2000) newLevel = 2; // Medium: Upgrade downsides, flickering UI, typo popups, cursor changes.
+    if (score >= 7000) newLevel = 3; // High: CAPTCHAs, visual glitches, lag, text distortions.
+    if (score >= 25000) newLevel = 4; // Extreme: Fake crashes, body shakes, more intense audio, false inputs.
+    if (score >= 75000) newLevel = 5; // MAXIMUM OVERDRIVE: All annoyances at peak, invisible button.
 
     if (newLevel > annoyanceLevel) {
         annoyanceLevel = newLevel;
@@ -82,7 +96,7 @@ function createPopup(message, title = "Just Another Useless Popup") {
 
     popup.innerHTML = `<h3>${title}</h3><p>${message}</p>`;
     
-    // Close button logic: disappears at higher annoyance levels
+    // Close button logic: disappears at higher annoyance levels or becomes harder
     if (annoyanceLevel < 3 || (annoyanceLevel >= 3 && Math.random() < (0.5 - (annoyanceLevel * 0.1)))) { // Becomes less likely at high levels
         const closeButton = document.createElement('button');
         closeButton.textContent = "Click to Close";
@@ -96,7 +110,7 @@ function createPopup(message, title = "Just Another Useless Popup") {
         waitingMessage.style.color = '#777';
         popup.appendChild(waitingMessage);
         // Auto-remove popups with no close button after a longer, variable time
-        setTimeout(() => popup.remove(), (Math.random() * 5000) + 5000); // 5-10 seconds
+        setTimeout(() => popup.remove(), (Math.random() * 5000) + 5000 + (annoyanceLevel * 1000)); // 5-10s + up to 5s more
     }
 
     // Annoying random position
@@ -119,23 +133,37 @@ function clickHandler() {
         return; 
     }
 
-    score += pointsPerClick;
-    totalClicks++;
-    updateScoreDisplay();
-    // createPopup(`Total Clicks: ${totalClicks}`); // Now mostly handled by randomAnnoyance
-    checkAchievements();
-    checkAnnoyanceLevel(); // NEW: Check annoyance level on every click
+    // Introduce fake input delay
+    const delayDuration = (annoyanceLevel >= 2) ? (Math.random() * 100 + annoyanceLevel * 50) : 0; // Up to 500ms delay at max
+    setTimeout(() => {
+        score += pointsPerClick;
+        totalClicks++;
+        updateScoreDisplay();
+        
+        checkAchievements();
+        checkAnnoyanceLevel(); // Check annoyance level on every click
 
-    // Annoyance functions probabilities now scale with annoyance_level
-    randomAnnoyance();
-    randomButtonMove(); // Always call, but internal logic decides if it moves
-    randomButtonTextChange(); // Always call, but internal logic decides if it changes
-
-    if (annoyanceLevel >= 3) {
-        if (Math.random() < (0.03 + annoyanceLevel * 0.01)) { // CAPTCHA becomes more likely at higher levels
-            showCaptcha();
+        // Annoyance functions probabilities now scale with annoyance_level
+        randomAnnoyance();
+        randomButtonMove(); // Always call, but internal logic decides if it moves
+        randomButtonTextChange(); // Always call, but internal logic decides if it changes
+        
+        // Annoyances that activate on click or higher levels
+        if (annoyanceLevel >= 1) randomAnnoyingSound();
+        if (annoyanceLevel >= 2) toggleCursor();
+        if (annoyanceLevel >= 3) randomTextTransform();
+        if (annoyanceLevel >= 4) {
+            falseInput();
+            alterButtonSize();
         }
-    }
+        if (annoyanceLevel >= 5) invisibleClickTarget();
+
+        if (annoyanceLevel >= 3) {
+            if (Math.random() < (0.03 + annoyanceLevel * 0.01)) { // CAPTCHA becomes more likely at higher levels
+                showCaptcha();
+            }
+        }
+    }, delayDuration);
 }
 
 function upgradeHandler() {
@@ -195,6 +223,7 @@ function checkAchievements() {
 
 // --- Annoyance Features (Scaled by annoyanceLevel) ---
 
+// Visual Annoyances
 function randomAnnoyance() {
     const annoyMessages = [
         "Still here? Amazing.", "Are you enjoying this? Because we are.",
@@ -416,19 +445,317 @@ function fakeCrashMessage() {
     setTimeout(fakeCrashMessage, Math.max(10000, delay)); // Minimum 10 seconds delay
 }
 
+// NEW ANNOYANCES START HERE
+
+// Audio Annoyances
+function playAnnoyingSound(soundElement) {
+    if (soundElement && annoyanceLevel >= 1 && Math.random() < (0.05 + annoyanceLevel * 0.03)) { // Starts at 5%, up to 20%
+        try {
+            soundElement.currentTime = 0; // Rewind to start
+            soundElement.play().catch(e => console.error("Audio playback error:", e)); // Catch potential autoplay policy errors
+        } catch (e) {
+            console.error("Could not play sound:", e);
+        }
+    }
+}
+
+function randomAnnoyingSound() {
+    if (allSounds.length === 0) return; // No sounds loaded
+    const randomSound = allSounds[Math.floor(Math.random() * allSounds.length)];
+    playAnnoyingSound(randomSound);
+}
+
+function randomVolumeSpike() {
+    if (annoyanceLevel >= 4 && Math.random() < (0.01 + annoyanceLevel * 0.005)) { // Low chance, but increases
+        const originalVolume = allSounds[0] ? allSounds[0].volume : 0.5; // Assume one sound for volume control
+        const spikeDuration = Math.random() * 500 + 200; // 200-700ms
+        const spikeVolume = Math.min(1.0, originalVolume + Math.random() * 0.5 + 0.2); // Original + 0.2-0.7
+
+        allSounds.forEach(s => s.volume = spikeVolume);
+        createPopup("WHOOPS! Volume Spike!", "EAR DRUM DAMAGE");
+        setTimeout(() => {
+            allSounds.forEach(s => s.volume = originalVolume);
+        }, spikeDuration);
+    }
+}
+
+
+// Visual Distortions
+function applyVisualDistortion() {
+    // Only from annoyance level 3. Chance: 1% base + 0.5% per level
+    if (annoyanceLevel >= 3 && Math.random() < (0.01 + annoyanceLevel * 0.005)) {
+        const distortions = [
+            'blur(3px)', 'invert(100%)', 'hue-rotate(180deg)', 'grayscale(100%)', 'sepia(100%)'
+        ];
+        const randomDistortion = distortions[Math.floor(Math.random() * distortions.length)];
+        const duration = Math.random() * 500 + 200; // 200-700ms
+
+        body.style.filter = randomDistortion;
+        createPopup(`Visual Anomaly: ${randomDistortion}`, "Screen Glitch");
+        setTimeout(() => {
+            body.style.filter = 'none'; // Revert
+        }, duration);
+    }
+}
+
+function shakeEffect() {
+    // Only from annoyance level 4. Chance: 0.5% base + 0.2% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.005 + annoyanceLevel * 0.002)) {
+        body.classList.add('body-shake');
+        createPopup("Earthquake detected! Or is it just your screen?", "SHAKY!");
+        setTimeout(() => {
+            body.classList.remove('body-shake');
+        }, 500); // Shake for half a second
+    }
+}
+
+function randomTextTransform() {
+    // Only from annoyance level 3. Chance: 2% base + 1% per level
+    if (annoyanceLevel >= 3 && Math.random() < (0.02 + annoyanceLevel * 0.01)) {
+        const targetElement = Math.random() < 0.5 ? scoreDisplay : goalDisplay;
+        const transforms = [
+            `skewX(${Math.random() * 20 - 10}deg)`, // -10 to 10 deg
+            `rotate(${Math.random() * 10 - 5}deg)`, // -5 to 5 deg
+            `scale(${Math.random() * 0.3 + 0.8})` // 0.8 to 1.1 scale
+        ];
+        const randomTransform = transforms[Math.floor(Math.random() * transforms.length)];
+        const originalTransform = targetElement.style.transform;
+        
+        targetElement.style.transform = randomTransform;
+        createPopup("Your text just got a mind of its own!", "Text Trouble");
+        setTimeout(() => {
+            targetElement.style.transform = originalTransform; // Revert
+        }, Math.random() * 500 + 200); // 200-700ms
+
+        // Also change font for extra fun
+        const fonts = ["Comic Sans MS", "Impact", "Courier New", "fantasy", "monospace"];
+        const originalFont = targetElement === scoreDisplay ? originalScoreDisplayFont : originalGoalDisplayFont;
+        const newFont = fonts[Math.floor(Math.random() * fonts.length)];
+        targetElement.style.fontFamily = newFont;
+        setTimeout(() => {
+            targetElement.style.fontFamily = originalFont;
+        }, Math.random() * 1000 + 500); // 500-1500ms
+    }
+}
+
+// Input/Interaction Annoyances
+
+function toggleCursor() {
+    // Only from annoyance level 2. Chance: 1% base + 0.5% per level
+    if (annoyanceLevel >= 2 && Math.random() < (0.01 + annoyanceLevel * 0.005)) {
+        const cursors = ['none', 'wait', 'not-allowed', 'help'];
+        const currentCursor = body.style.cursor;
+        let newCursor = cursors[Math.floor(Math.random() * cursors.length)];
+        while(newCursor === currentCursor) { // Avoid setting same cursor
+            newCursor = cursors[Math.floor(Math.random() * cursors.length)];
+        }
+        
+        body.style.cursor = newCursor;
+        createPopup(`Cursor changed to: ${newCursor}! Good luck!`, "Mouse Mischief");
+        setTimeout(() => {
+            body.style.cursor = ''; // Revert to default or 'auto'
+        }, Math.random() * 1000 + 500); // 500-1500ms
+    }
+}
+
+function disableRightClick() {
+    // Only from annoyance level 3. Apply persistently at high levels
+    if (annoyanceLevel >= 3 && Math.random() < (0.01 + annoyanceLevel * 0.005)) {
+        window.oncontextmenu = (e) => {
+            e.preventDefault();
+            createPopup("Right-click disabled. No cheating!", "Access Denied");
+            return false;
+        };
+    } else if (window.oncontextmenu) { // Periodically enable it if not at high level
+        if (Math.random() < 0.1) window.oncontextmenu = null;
+    }
+}
+
+function disableTextSelection() {
+    // Only from annoyance level 2. Applied via CSS class (no-select)
+    // The `no-select` class is applied by default in index.html to ensure it's always off
+    // We can make it temporarily enable/disable for annoyance, but usually you want it off
+    // for a clicker game. This function remains as a placeholder for more advanced toggling.
+}
+
+function falseInput() {
+    // Only from annoyance level 4. Chance: 0.5% base + 0.2% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.005 + annoyanceLevel * 0.002)) {
+        const type = Math.random() < 0.5 ? 'positive' : 'negative';
+        let change = Math.random() * 10 + 1; // 1 to 10 points
+        if (type === 'negative') {
+            change *= -1;
+            createPopup(`A phantom force stole ${Math.abs(change).toFixed(1)} points!`, "Unintended Consequence");
+        } else {
+            createPopup(`A glitch just gave you ${change.toFixed(1)} points! (You're welcome?)`, "Ghostly Bonus");
+        }
+        score = Math.max(0, score + change);
+        updateScoreDisplay();
+    }
+}
+
+function alterButtonSize() {
+    // Only from annoyance level 4. Chance: 1% base + 0.5% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.01 + annoyanceLevel * 0.005)) {
+        const originalWidth = clickButton.style.width;
+        const originalHeight = clickButton.style.height;
+        const originalPadding = clickButton.style.padding;
+
+        if (Math.random() < 0.5) { // Make it tiny
+            clickButton.style.width = '50px';
+            clickButton.style.height = '20px';
+            clickButton.style.padding = '5px';
+            createPopup("Your button shrunk! Good luck hitting that!", "Shrink Ray!");
+        } else { // Make it huge and cover things
+            clickButton.style.width = '300px';
+            clickButton.style.height = '150px';
+            clickButton.style.padding = '50px';
+            createPopup("The button consumes all! Find a way!", "Giant Button!");
+        }
+
+        setTimeout(() => {
+            clickButton.style.width = originalWidth;
+            clickButton.style.height = originalHeight;
+            clickButton.style.padding = originalPadding;
+            // Best to reset to original styles from CSS if possible
+            clickButton.style.width = '';
+            clickButton.style.height = '';
+            clickButton.style.padding = '';
+        }, Math.random() * 1000 + 500); // 0.5-1.5 seconds
+    }
+}
+
+function invisibleClickTarget() {
+    // Only from annoyance level 5. Chance: 0.5% base + 0.1% per level
+    if (annoyanceLevel >= 5 && Math.random() < (0.005 + annoyanceLevel * 0.001)) {
+        clickButton.style.opacity = '0';
+        createPopup("Where did the button go?! Keep clicking blindly!", "Now You See It...");
+        setTimeout(() => {
+            clickButton.style.opacity = '1';
+        }, Math.random() * 1000 + 500); // 0.5-1.5 seconds invisible
+    }
+}
+
+function insertTemporaryScrollbars() {
+    // Only from annoyance level 4. Chance: 0.5% base + 0.1% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.005 + annoyanceLevel * 0.001)) {
+        const originalOverflowX = body.style.overflowX;
+        const originalOverflowY = body.style.overflowY;
+
+        body.style.overflowX = 'scroll';
+        body.style.overflowY = 'scroll';
+
+        // Add temporary large element to force scrolling
+        const tempScrollInducer = document.createElement('div');
+        tempScrollInducer.style.width = `${window.innerWidth * 1.5}px`;
+        tempScrollInducer.style.height = `${window.innerHeight * 1.5}px`;
+        tempScrollInducer.style.position = 'absolute';
+        tempScrollInducer.style.top = '0';
+        tempScrollInducer.style.left = '0';
+        tempScrollInducer.style.zIndex = '-1'; // Behind everything
+        body.appendChild(tempScrollInducer);
+
+        createPopup("Sudden scrollbars! Why are you scrolling?!", "Scroll-Lock");
+
+        setTimeout(() => {
+            body.style.overflowX = originalOverflowX;
+            body.style.overflowY = originalOverflowY;
+            tempScrollInducer.remove();
+        }, Math.random() * 2000 + 1000); // 1-3 seconds
+    }
+}
+
+
+// Psychological Annoyances
+function fakeProgressBarJump() {
+    // Always active, but severity scales
+    const currentValue = parseFloat(fakeProgressBar.style.width);
+    if (annoyanceLevel >= 2 && Math.random() < (0.1 + annoyanceLevel * 0.05)) { // Chance to jump backwards
+        let jumpBack = Math.random() * 20 + 10 + (annoyanceLevel * 5); // 10-30 + more for level
+        fakeProgressBar.style.width = `${Math.max(0, currentValue - jumpBack)}%`;
+        if (currentValue - jumpBack < 50) { // Only show popup if it's a significant setback
+             createPopup("Your progress took a... detour. Backwards.", "Progress Regression");
+        }
+    }
+    // The continuous `updateFakeProgress` handles forward movement.
+}
+
+function conflictingMessagePopup() {
+    // Only from annoyance level 3. Chance: 2% base + 1% per level
+    if (annoyanceLevel >= 3 && Math.random() < (0.02 + annoyanceLevel * 0.01)) {
+        const msgs1 = ["You're doing great!", "Keep it up!", "Almost there!"];
+        const msgs2 = ["But also, you're failing.", "This is pointless.", "You'll never make it."];
+        createPopup(`${msgs1[Math.floor(Math.random() * msgs1.length)]} ${msgs2[Math.floor(Math.random() * msgs2.length)]}`, "Conflicting Signals");
+    }
+}
+
+function fakeErrorPopup() {
+    // Only from annoyance level 4. Chance: 1% base + 0.5% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.01 + annoyanceLevel * 0.005)) {
+        const errorCodes = [
+            "ERROR: 0x80070005 - Access is denied. But not to you.",
+            "SYNTAX ERROR: Brain.exe not found.",
+            "CRITICAL WARNING: User is performing repetitive actions. Seek help?",
+            "EXCEPTION: NullPointer.toYourSanity",
+            "STATUS_STACK_BUFFER_OVERRUN: Your patience buffer overflowed."
+        ];
+        createPopup(errorCodes[Math.floor(Math.random() * errorCodes.length)], "Cryptic Error");
+    }
+}
+
+function selfDoubtPopup() {
+    // Only from annoyance level 4. Chance: 0.5% base + 0.1% per level
+    if (annoyanceLevel >= 4 && Math.random() < (0.005 + annoyanceLevel * 0.001)) {
+        const doubts = [
+            "Are you sure this is fun?", "Is your life fulfilling?", "Don't you have something better to do?",
+            "You could be learning a new skill right now.", "This game judges your choices.",
+            "Your parents are watching.", "Just give up. It's okay."
+        ];
+        createPopup(doubts[Math.floor(Math.random() * doubts.length)], "Existential Crisis");
+    }
+}
+
 
 // --- Event Listeners and Initial Calls ---
 clickButton.addEventListener('click', clickHandler);
 upgradeButton.addEventListener('click', upgradeHandler);
 
+// Prevent right-click and text selection persistently (with occasional annoyance overrides)
+document.addEventListener('contextmenu', (e) => {
+    if (annoyanceLevel >= 3) e.preventDefault(); // Only prevent at higher levels
+});
+
 // Initial display updates
 updateScoreDisplay();
-// THIS IS THE LINE THAT WAS MISSING TO DISPLAY THE GOAL:
-goalDisplay.textContent = `Grand Goal: ${gameGoal.toLocaleString()} Points!`; 
+goalDisplay.textContent = `Grand Goal: ${gameGoal.toLocaleString()} Points!`; // Set initial goal text
 
 // Start all background annoyance timers
-updateFakeProgress();
+// These timers check annoyanceLevel internally to decide if they should execute
+updateFakeProgress(); // This now incorporates fakeProgressBarJump
 flickerUIElements();
 visualGlitch();
 simulateLag();
 fakeCrashMessage();
+
+// New timed annoyances
+setInterval(applyVisualDistortion, 5000); // Check every 5 seconds
+setInterval(shakeEffect, 7000); // Check every 7 seconds
+setInterval(randomTextTransform, 3000); // Check every 3 seconds
+setInterval(toggleCursor, 4000); // Check every 4 seconds
+setInterval(disableRightClick, 10000); // Check every 10 seconds
+setInterval(falseInput, 15000); // Check every 15 seconds
+setInterval(alterButtonSize, 8000); // Check every 8 seconds
+setInterval(insertTemporaryScrollbars, 20000); // Check every 20 seconds
+setInterval(conflictingMessagePopup, 6000); // Check every 6 seconds
+setInterval(fakeErrorPopup, 12000); // Check every 12 seconds
+setInterval(selfDoubtPopup, 9000); // Check every 9 seconds
+setInterval(randomVolumeSpike, 10000); // Check every 10 seconds (adjust as needed for audio events)
+
+// Initial audio trigger (needed for browser autoplay policies)
+document.addEventListener('click', () => {
+    if (!errorSound.played.length) { // Only try to play once
+        errorSound.play().catch(e => console.log("Initial audio playback blocked or failed:", e));
+        errorSound.pause(); // Immediately pause it
+        errorSound.currentTime = 0;
+    }
+}, { once: true }); // Only run this listener once
