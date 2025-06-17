@@ -9,6 +9,16 @@ body {
     margin: 0;
     overflow: hidden; /* Important for moving elements off-screen or for visual glitches */
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewport="0 0 100 100" style="fill:black;font-size:16px;">Click</svg>') 10 10, auto; /* Fun custom cursor, optional */
+    transition: filter 0.1s ease-in-out; /* For blur/invert transitions */
+}
+
+/* Base class for disabling text selection */
+.no-select {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .game-container {
@@ -22,10 +32,10 @@ body {
     min-height: 300px;
 }
 
-h1 {
+h1, h2 {
     font-size: 2.5em;
     color: #333;
-    transition: color 0.1s ease-in-out; /* For glitch effect */
+    transition: color 0.1s ease-in-out, transform 0.1s ease-in-out, font-family 0.1s ease-in-out; /* For glitch effect */
 }
 
 h2 {
@@ -41,7 +51,7 @@ button {
     cursor: pointer;
     border: none;
     border-radius: 5px;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition: background-color 0.2s ease, transform 0.1s ease, width 0.1s ease, height 0.1s ease, padding 0.1s ease;
 }
 
 button:active {
@@ -68,7 +78,7 @@ button:active {
 
 button:disabled {
     background-color: #cccccc;
-    cursor: not-allowed;
+    cursor: not-allowed !important; /* Override other cursor changes when disabled */
 }
 
 .popup {
@@ -174,7 +184,7 @@ button:disabled {
     border-radius: 10px;
 }
 
-/* For visual glitches */
+/* For visual glitches (full screen flash) */
 .glitch-flash {
     position: fixed;
     top: 0;
@@ -191,3 +201,30 @@ button:disabled {
     0% { opacity: 0.8; }
     100% { opacity: 0; }
 }
+
+/* For body shaking effect */
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.body-shake {
+    animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Cursor annoyances */
+.cursor-none { cursor: none !important; }
+.cursor-wait { cursor: wait !important; }
+.cursor-not-allowed { cursor: not-allowed !important; }
