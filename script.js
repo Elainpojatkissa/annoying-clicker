@@ -423,7 +423,8 @@ upgradeButton.addEventListener('click', upgradeHandler);
 
 // Initial display updates
 updateScoreDisplay();
-goalDisplay.textContent = `Grand Goal: ${gameGoal.toLocaleString()} Points!`; // Set initial goal text
+// THIS IS THE LINE THAT WAS MISSING TO DISPLAY THE GOAL:
+goalDisplay.textContent = `Grand Goal: ${gameGoal.toLocaleString()} Points!`; 
 
 // Start all background annoyance timers
 updateFakeProgress();
