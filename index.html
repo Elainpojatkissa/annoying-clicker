@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Clicker: Far Side Frenzy</title>
+    <title>Web Clicker: Far Side Frenzy (ULTIMATE ANNOYANCE EDITION)</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="game-container">
+<body class="no-select"> <div class="game-container">
         <h2 id="goal-display"></h2> 
         <h1 id="score-display">Score: 0.0</h1>
         <button id="click-button">Click Me!</button>
@@ -19,6 +18,10 @@
 
     <div id="popup-area"></div> 
 
+    <audio id="error-sound" src="error.mp3" preload="auto"></audio>
+    <audio id="buzz-sound" src="buzz.mp3" preload="auto"></audio>
+    <audio id="discord-ping-sound" src="discord_ping.mp3" preload="auto"></audio>
+    
     <script src="script.js"></script>
 </body>
 </html>
